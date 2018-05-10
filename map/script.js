@@ -70,7 +70,7 @@ async function addMarkers() {
 
 	for (var i = 0; i < county_data_files.length; i++) {
 		window.reqs[i] = new XMLHttpRequest();
-		window.reqs[i].open("GET", ("https://nickelconst.github.io/data/" + county_data_files[i]));
+		window.reqs[i].open("GET", ("https://f001.backblazeb2.com/file/nccom-data/" + county_data_files[i]));
 		window.reqs[i].responseType = "arraybuffer";
 
 		window.reqs[i].onload = function(e) {
