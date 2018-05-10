@@ -1,0 +1,55 @@
+body {
+  background-color: #fffff7;
+  border: 0;
+  margin: 0;
+}
+
+#loading_table {
+  position: absolute;
+  display: table;
+  z-index: 5;
+}
+
+#loading_text {
+  display: table-row;
+  font-family: Roboto, Arial;
+  font-size: 16pt;
+}
+
+#map {
+  width: 100%;
+  border: 0;
+  margin: 0;
+}
+
+footer {
+  width: 100%;
+  display: table;
+}
+
+#footerTableRow {
+  width: 100%;
+  display: table-row;
+}
+
+.vert_align {
+  width: 50%;
+  display: table-cell;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.footer_text {
+  font-family: Roboto, Arial;
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
+}
+
+footer:hover {
+  cursor: pointer;
+}

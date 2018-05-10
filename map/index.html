@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8"/>
+	<title>Map</title>
+	<link rel="stylesheet" href="style.css"/>
+	<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgHt1XLTepjittcuJQFpt6G5nfms5klcw&callback=initMap"></script>
+</head>
+<body onresize="resize()">
+	<div id="loading_table"><span id="loading_text">Loading...</span></div>
+	<div id="map"></div>
+	<footer id="footer">
+		<div id="footerTableRow">
+			<div class="vert_align" onclick="toggleSectionNumbers()" style="background-color: #99f">
+				<span class="footer_text" style=>Toggle section numbers</span>
+			</div>
+			<div class="vert_align" onclick="requestLocation()" style="background-color: #9f9">
+				<span class="footer_text">Locate</span>
+			</div>
+		</div>
+	</footer>
+
+	<script>
+		function style(id) {
+			return document.getElementById(id).style;
+		}
+		function resize() {
+			style("map").height = window.innerHeight - 40 * window.devicePixelRatio + "px";
+			style("footer").height = 40 * window.devicePixelRatio + "px";
+			style("footer").fontSize = 12 * window.devicePixelRatio + "pt";
+			style("loading_table").top = parseInt(style("map").height) / 2 - document.getElementById("loading_table").offsetHeight / 2 + "px";
+			style("loading_table").left = parseInt(window.innerWidth) / 2 - document.getElementById("loading_table").offsetWidth / 2 + "px";
+		}
+		resize();
+	</script>
+	<script src="twp.js"></script>
+	<script src="script.js"></script>
+	<script>
+		function initMap() {
+			window.infoWindow = new google.maps.InfoWindow;
+			var officeCoords = new google.maps.LatLng(43.952164, -94.930077);
+			var mapOptions = {
+				zoom: 13,
+				center: officeCoords,
+				mapTypeId: google.maps.MapTypeId.HYBRID
+			}
+			window.map = new google.maps.Map(document.getElementById('map'), mapOptions);
+			window.prev_zoom = window.map.getZoom();
+
+			addMarkers();
+			window.bc_counter = 0;
+			window.min_zoom = 13;
+			google.maps.event.addListener(window.map, 'zoom_changed', function() {
+				window.infoWindow.close();
+				var cur_zoom = window.map.getZoom();
+				// window.officeMarker.setVisible(window.map.getZoom() >= 16);
+				if (window.prev_zoom <= 10 && cur_zoom > 10 || window.prev_zoom > 10 && cur_zoom <= 10) {
+					for (var i = 0; i < window.twp_marker_array.length; i++) {
+						window.twp_marker_array[i].setVisible(cur_zoom > 10);
+					}
+				}
+				if (window.prev_zoom < window.min_zoom && cur_zoom >= window.min_zoom) {
+					window.sectionNumbersVisible = true;
+					var b = window.map.getBounds();
+					for (var i = 0; i < window.marker_array.length; i++) {
+						if (!window.marker_array[i].getVisible() &&
+							b.contains(window.marker_array[i].getPosition())) {
+							window.marker_array[i].setVisible(true);
+						}
+					}
+				} else if (window.prev_zoom >= window.min_zoom && cur_zoom < window.min_zoom ||
+						   window.sectionNumbersVisible && cur_zoom <= 10) {
+					window.sectionNumbersVisible = false;
+					for (var i = 0; i < window.marker_array.length; i++) {
+						window.marker_array[i].setVisible(false);
+					}
+				}
+				window.prev_zoom = cur_zoom;
+			});
+			google.maps.event.addListener(window.map, 'bounds_changed', function() {
+				if (window.map.getZoom() >= window.min_zoom || window.bc_counter++ < 2) {
+					if (window.sectionNumbersVisible) {
+						var b = window.map.getBounds();
+						for (var i = 0; i < window.marker_array.length; i++) {
+							if (!window.marker_array[i].getVisible() &&
+								b.contains(window.marker_array[i].getPosition())) {
+								window.marker_array[i].setVisible(true);
+							} else if (window.marker_array[i].getVisible() &&
+									   !b.contains(window.marker_array[i].getPosition())) {
+								window.marker_array[i].setVisible(false);
+							}
+						}
+					}
+				}
+			});
+			google.maps.event.addListener(window.map, 'idle', function() {
+				window.bc_counter = 0;
+				if (window.sectionNumbersVisible) {
+					var b = window.map.getBounds();
+					for (var i = 0; i < window.marker_array.length; i++) {
+						if (!window.marker_array[i].getVisible() &&
+							b.contains(window.marker_array[i].getPosition())) {
+							window.marker_array[i].setVisible(true);
+						} else if (window.marker_array[i].getVisible() &&
+								   !b.contains(window.marker_array[i].getPosition())) {
+							window.marker_array[i].setVisible(false);
+						}
+					}
+				}
+			});
+		}
+	</script>
+	<script>
+		function requestLocation() {
+			if (navigator.geolocation) {
+				navigator.geolocation.getCurrentPosition(function(position) {
+					var geoloc = {
+						lat: position.coords.latitude,
+						lng: position.coords.longitude
+					};
+
+					window.infoWindow.setPosition(geoloc);
+					window.infoWindow.setContent("Current Location");
+					window.infoWindow.open(window.map);
+					map.setCenter(geoloc);
+				}, function() {
+					handleLocationError(true);
+				},
+				{
+					enableHighAccuracy: true
+				});
+			} else {
+				handleLocationError(false);
+			}
+		}
+		function handleLocationError(browserHasGeolocation) {
+			alert(browserHasGeolocation ? "Error: Geolocation service failed; try enabling Location Services in your settings or your browser's app permissions" : "Error: Geolocation unsupported");
+		}
+	</script>
+</body>
+</html>
