@@ -56,7 +56,7 @@ async function addMarkers() {
 					scale: window.devicePixelRatio
 				}
 			});
-			window.twp_marker_array[offset + j].setZIndex(1);
+			// window.twp_marker_array[offset + j].setZIndex(1);
 			window.twp_marker_array[offset + j].setCursor("pointer");
 			// makeTwpListener(window.twp_marker_array[offset + j], window.twp[i].cty);
 		}
@@ -109,7 +109,7 @@ async function addMarkers() {
 					},
 					id: j
 				});
-				window.marker_array[marker_array_offset + j].setZIndex(0);
+				// window.marker_array[marker_array_offset + j].setZIndex(0);
 				window.marker_array[marker_array_offset + j].setCursor("pointer");
 				window.marker_array[marker_array_offset + j].addListener("click", function(e) {
 					clickedMarker(e.latLng.lat().toFixed(4) + "," +
