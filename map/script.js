@@ -110,6 +110,7 @@ async function addMarkers() {
 					id: j
 				});
 				// window.marker_array[marker_array_offset + j].setZIndex(0);
+				window.marker_array[marker_array_offset + j].setVisible(false);
 				window.marker_array[marker_array_offset + j].setCursor("pointer");
 				window.marker_array[marker_array_offset + j].addListener("click", function(e) {
 					clickedMarker(e.latLng.lat().toFixed(4) + "," +
@@ -137,7 +138,7 @@ function makeTwpListener(marker, cty) {
 	});
 }
 
-window.sectionNumbersVisible = true;
+window.sectionNumbersVisible = false;
 
 function toggleSectionNumbers() {
 	if (window.map.getZoom() > 10) {
