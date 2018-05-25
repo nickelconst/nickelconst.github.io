@@ -121,6 +121,7 @@ async function addMarkers() {
 			window.finished_reqs += 1;
 			if (window.finished_reqs == county_data_files.length) {
 				style("loading_text").display = "none";
+				toggleSectionNumbers();
 			}
 		}
 
