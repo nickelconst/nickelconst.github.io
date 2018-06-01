@@ -1,0 +1,566 @@
+<!-- nickelconst.com mirror of http://www.routeware.dk/notes.html -->
+<!-- saved from url=(0022)http://internet.e-mail -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<meta name="Author" content="Anssi">
+<meta name="Generator" content="Notepad">
+<link rel="STYLESHEET" type="text/css" href="mntf.css">
+<title> Notes on Mapinfo Native table format</title>
+
+
+</head>
+
+<body>
+
+<h1>Notes on the MapInfo<sup>&#174;</sup> Native table format</h1>
+<h2 class="mail">by <a href="mailto:joutsini@dlc.fi">Anssi Joutsiniemi</a> 
+and <a href="mailto:EdwardsRG@aol.com">Robert Edwards</a> </h2>
+<p class="start">March 2000</p>
+
+<p class="start">Some changes by <A HREF="mailto:uffe@routeware.dk">Uffe Kousgaard</A> in July 2000.</p>
+<p class="start">Small changes by <A HREF="mailto:uffe@routeware.dk">Uffe Kousgaard</A> in Dec 2002.</p>
+<p class="start">1 change by <A HREF="mailto:uffe@routeware.dk">Uffe Kousgaard</A> in May 2005.</p>
+<p class="start">Several changes by <A HREF="mailto:uffe@routeware.dk">Uffe Kousgaard</A> in Nov 2007.</p>
+
+
+<hr>
+
+<p class="start">DISCLAIMER</p>
+
+<p class="start">The information provided in this document is not
+guaranteed to be accurate. The authors assume no responsibility for
+any trouble you may experience as a result of using this
+information. Use at your own risk.</p>
+
+<p class="start">In the spirit of the <A HREF="http://www.opensource.org">
+Open Source Initiative</A>, this document may be freely distributed.
+You may make changes to the original and redistribute, but all
+copies must retain the orignal title, authors' names, and
+disclaimer.</p>
+
+<p class="start">If you do make additions or corrections, the author
+would appreciate receiving an E-mail copy of your updated document
+or a URL to its location.</p>
+
+<p class="start"> MapInfo is a registered trademark of MapInfo Corporation.</p>
+
+<p class="start">DOCUMENTATION CONVENTIONS</p>
+
+<p class="start">In this brief introduction all offsets are relative to the beginning
+of each block. Values preceded by "&H" are hexadecimal.
+<br>
+Naming convention is invented by the author, since no documentation
+on the native MapInfo<sup>&#174;</sup> file format is currently available.
+</p>
+<p class="start">In this documentation notations are marked as follows:
+<br>
+[?] talented guess<br>
+[??] not so good guess<br>
+[!] value that seems to be a constant</P>
+
+<hr>
+
+<h3>General Notes on MapInfo<sup>&#174;</sup> Tables</h3>
+
+
+<p class="start">MapInfo<sup>&#174;</sup> Native Table consists of
+files with following suffixes: </p>
+
+<table>
+<tr><td>.TAB:</td><td>table structure in ASCII format (required)</td></tr>
+<tr><td>.DAT:</td><td>table date storage in binary format (required)</td></tr>
+<tr><td>.MAP:</td><td>storage of map objects in binary format (optional)</td></tr>
+<tr><td>.ID:</td><td>links to the .map file (optional, but required if .map file exists)</td></tr>
+
+<tr><td colspan=3>NOT described in this document:</td></tr>
+<tr><td>.IND:</td><td>data of indexed fields in binary format (optional)</td></tr>
+</table>
+
+<p>The structure of MapInfo<sup>&#174;</sup> .dat file is virtually identical to dBase IV 
+data format. The MapInfo<sup>&#174;</sup> .id file data is stored in 32 bit Integers, each value points
+to an object in the Object Definition Blocks (see below) because
+the record order in .id file is same as in .dat file (i.e. RowID)
+including deleted record which have a value of &H0.
+</p>
+
+<p>MapInfo<sup>&#174;</sup> .map file is organized in blocks of &H200 bytes. (Beginning with Version 500 
+the Header Block is extended by &H200 bytes.) Each block is identified by first byte. 
+The six block types are:
+</p>
+
+
+<dl><dt><a href="#bl0">HEADER BLOCK</a>(BlockID 0) 
+    <dd>General information of table coordinate system and internal
+    structure</dl>
+<dl><dt><a href="#bl1">INDEX BLOCK</a> (BlockID 1) 
+    <dd>Index to locate map objects on Object Definition Blocks</dl>
+<dl><dt><a href="#bl2">OBJECT DEFINITION BLOCK</a> (BlockID 2) 
+    <dd>General information on map objects</dl>
+<dl><dt><a href="#bl3">COORDINATE DEFINITION BLOCK</a> (BlockID 3) 
+    <dd>Coordinate storage block</dl>
+<dl><dt><a href="#bl4">DELETED BLOCK</a> (BlockID 4) 
+    <dd>Re-usable block</dl>
+<dl><dt><a href="#bl5">RESOURCE BLOCK</a> (BlockID 5) 
+    <dd>List of pen, brush, font and symbol resources of table</dl>
+
+
+<p>The byte order is little-endian (from least
+significant byte to most significant byte).</p>
+
+<p>Map objects can be accessed in either of two ways. 
+One is through the offset in .id file which is a means of accessing the
+object information associated with an attribute. The other is what I have used 
+in my Recover.mbx which loops through the Index Block 
+to gain information on all Object Definition Blocks. This is useful for
+a more sophisticated use when objects are selected according to their
+MBR (Minimum Bounding Rectangle).</p>
+
+<p>Robert Edwards pointed out that the coordinates and 
+distances in an object definition are defined using either 16 bit 
+integers (MI:SmallInt) or 32 bit integers (MI:Integers). Inspection 
+of the object code numbering scheme indicates that there is the 
+possiblity of another set of object definition, perhaps based on 64 bit coordinates, 
+but there is no evidence that such a feature has been implemented.</p>
+
+<p>According to Edwards, short coordinate 
+precision is used if all the coordinates and distances for an object 
+can be expressed as differences less than +-2^15. Short coordinate 
+values are added to base coordinate value (base coordinates are located
+either in the base of the Object Definition Block or in the object 
+itself) and this sum is converted to floating point coordinates using 
+the X/Y offsets and X/Y scales in Header Block. </p>
+
+<p>Data stored in Coordinate Definition Blocks contains the actual coordinate data 
+and header information of each section of holy or multisectioned 
+polygon. So the data of one map object consists of numbers of Section 
+headers, which is followed by coordinate values of all object sections.</p>
+
+<p>Note also: Object Definition Block (Block type code 2) is called Object 
+Definition Block in Open Source Software. Maybe one day all this stuff is put 
+together, but for know it is far more important that you play with it make it right.</p>
+
+<h3>LIST OF KNOWN BLOCKS AND BLOCK OFFSETS:</h3>
+
+<h4><a name="bl0"></a>HEADER BLOCK (BlockType 0)</h4>
+
+<pre>
+
+offset  length  count   description
+--------------------------------------------------------------
+
+&H0 1   1   Header Block identifier (Value: &H0) [!]
+
+&H1 1   1   Length of Object Definition data items in block 2
+:           If &H80 is added it means there is also coordinate data in block 3
+:
+:           For length of header data offset see &H163
+:           &H0A,&H0E,&H15,&H0E,&H16,&H1B,&HA2,&HA6....
+:           Rest is &H0
+:
+&HFF
+
+&H100   4   1   Magic Number (&H28757B2 i.e.42424242) [?]
+&H104   2   1   Map File Version (not equal to table version)
+&H106   2   1   Unknown value: &H200 [!], BlockSize[??]
+&H108   8   1   CoordSysToDistUnits: Miles/LatDegree for Lat/Long maps
+                1.0  for all others [!]
+&H110   4   4   Coordinates of Minimum Bounding Rectangle (MBR)
+&H120   4   4   Coordinates of Default View of table
+&H130   4   1   Offset of Object Definition Index (see also &H15F)
+&H134   4   1   Offset of the beginning of Deleted Block sequence
+&H138   4   1   Offset of Resources Block
+&H13C   4   1   Number of Symbol elements
+&H140   4   1   Number of Line elements
+&H144   4   1   Number of Region elements
+&H148   4   1   Number of Text elements
+&H14C   4   1   MaxCoordBufSize
+&H14E   14  1   14 Unknown bytes (Probably reserved and set to zero)
+&H15E   1   1   Map File Distance Units
+            For detailed information on distance unit values see:
+            MapInfoProgramDirectory/Ut/Reproject/MapInfoUnits.db
+
+&H15F   1   1   Type of Element Indexing data (see also &H130)
+                0  = NoData
+                1  = Object Definition Block         (= no index block    )
+                2- = Number of Index Block Layers +1 (= depth of quad tree)
+&H160   1   1   CoordPrecision  Value:1 for Projected maps
+                    Value:2 for Non-earth maps (meter)
+                    Value:5 for Non-earth maps (km)
+                    Value:6 for Lat/Long maps
+                    Value:8 for Lat/Long with Bounds and Cartesian maps ?
+&H161   1   1   CoordOriginCode Value:1 for Cartesian and Projected maps
+                    Value:2 for Lat/Long maps
+&H162   1   1   ReflectAxisCode Value:0 for Cartesian and Projected maps
+                    Value:1 for Lat/Long maps
+&H163   1   1   ObjLenArraySize (at start of this block)
+&H164   1   1   Number of pen resources
+&H165   1   1   Number of brush resources
+&H166   1   1   Number of symbol resources
+&H167   1   1   Number of text resources
+&H168   2   1   Number of Resource Blocks
+&H16A   2   1   Identifier for coordinate system (added in MapInfo 7.8 patch 1)
+&H16C   1   1   Unknown(probably reserved and set to zero)
+&H16D   1   1   Projection type
+            For detailed information on internal projection values see:
+            MapInfoProgramDirectory$&gt;/Ut/Reproject/MapInfoProj.db
+
+&H16E   1   1   Datum (See also &H1C0, &H1C8, &H1D0)
+                (Not always equal to value in MapInfow.prj)
+
+            For detailed information on internal datum values see:
+            &lt;MapInfo ProgramDirectory$&gt;/Ut/Reproject/MapinfoDatums.db
+
+&H16F   1   1   Units of coordinate system
+                (Values equal to &H15E)
+&H170   8   4   XScale, YScale, XOffset, YOffset
+&H190   8   1   Projection parameter 1.
+&H198   8   1   Projection parameter 2.
+&H1A0   8   1   Projection parameter 3.
+&H1A8   8   1   Projection parameter 4.
+&H1B0   8   1   Projection parameter 5.
+&H1B8   8   1   Projection parameter 6.
+&H1C0   8   1   Datum shift X
+&H1C8   8   1   Datum shift Y
+&H1D0   8   1   Datum shift Z
+&H1D8   8   5   Datum parameters
+.
+.
+.
+&H1FF           
+
+
+
+Version 500 extension (see &H104)
+--------------------------------------------------------------
+
+&H200   1   1   Value &H1 if in use
+&H201   1   1   Affine unit name
+&H208   8   6   Affine parameters A, B, C, D, E, F
+                (see Appendix H)
+
+&H238
+:           Probably Not In Use (and not padded w/ zeros)
+&H3FF
+</pre>
+
+<h4><a name="bl1"></a>INDEX BLOCK (BlockType 1)</h4>
+
+<pre>
+Index Block header (length: &H4)
+---------------------------------------------------------------
+&H0 1   1   Index Block identifier (Value: &H1) [!]
+&H1 1   1   Link
+&H2 2   1   Number of Index data blocks
+
+Index data (length: &H14)
+---------------------------------------------------------------
+&H0 4   4   Object Definition Block MBR (XMin, YMin, XMax, YMax)
+&H10    4   1   Object Definition Block offset
+</pre>
+
+<h4><a name="bl2"></a>Object Definition Block (BlockType 2)</h4>
+<pre>
+    Object Definition Block header (length: &H14)
+---------------------------------------------------------------
+&H0     1       1   Object Definition Block identifier (Value: &H2) [!]
+&H1     1       1   Link to next Object Definition Block
+&H2     2       1   Bytes To Follow (length of ODB data)
+&H4     4       2   Base coordinate values for short object types
+
+Object Definition data items, which are identified by a code in the first byte, are
+arrayed in an Object Definition Block after the header. The items in an Object
+Definition Block reference coordinate and section definitions in  
+an associated Coordinate Definition Block (or Blocks). For details about 
+object types see Edwards' notes.
+
+---------------------------------------------------------------
+ShortPoint [ID 1] (length: &HA):        [?]
+&H0     1       1       Identifier (Value: &H1) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     2       2       Coordinate value
+&H9     1       1       Symbol type number from Resource Block
+
+LongPoint [ID 2] (length: &HE):
+&H0     1       1       Identifier (Value: &H2) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       2       Coordinate value
+&HD     1       1       Symbol type number from Resource Block
+
+ShortLine [ID 4] (length: &HE):
+&H0     1       1       Identifier (Value: &H4) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       2       Coordinate value
+&HD     1       1       Line type number from Resource Block
+
+LongLine [ID 5] (length: &H16):
+&H0     1       1       Identifier (Value: &H5) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       4       MBR
+&H15    1       1       Line type number from Resource Block
+
+ShortPolyline [ID 7] (length: &H22):
+&H0     1       1       Identifier (Value: &H7) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)
+&H5     4       1       Offset of coordinate data in Coordinate Definition Block
+&H9     4       1       Bytes to read for coordinates from Coordinate Definition Block  (+&H80000000 = Smooth)
+&HD     2       2       Label location coordinates
+&H11    4       4       MBR
+&H21    1       1       Line type number from Resource Block
+
+LongPolyline [ID 8] (length: &H26):
+&H0     1       1       Identifier (Value: &H8) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       1       Offset of coordinate data in Coordinate Definition Block
+&H9     4       1       Bytes to read for coordinates from Coordinate Definition Block  (+&H80000000 = Smooth)
+&HD     4       2       Label location coordinates
+&H15    4       4       MBR     
+&H25    1       1       Line type number from Resource Block
+
+ShortArc [ID 10] (length: &H1A):
+&H0     1       1       Identifier (Value: &HA) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       2       MBR of defining ellipse
+&HD     4       2       MBR of the arc
+&H15    1       1       Line type number from Resource Block
+(4 more bytes somewhere?)
+
+LongArc [ID 11] (length: &H2A):
+&H0     1       1       Identifier (Value: &HB) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       4       MBR of defining ellipse
+&H15    4       4       MBR of the arc
+&H25    1       1       Line type number from Resource Block
+(4 more bytes somewhere?)
+
+ShortRegion [ID 13] (length: &H25):
+&H0     1       1       Identifier (Value: &HD) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       1       Offset of coordinate data in Coordinate Definition Block
+&H9     4       1       Bytes to read for coordinates from Coordinate Definition Block [??]
+&HD     2       1       Section count
+&HF     4       2       Label X,Y
+&H13    4       4       MBR
+&H23    1       1       Line type number from Resource Block
+&H24    1       1       Brush type number from Resource Block
+
+LongRegion [ID 14] (length: &H29):
+&H0     1       1       Identifier (Value: &HE) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       1       Offset of coordinate data in Coordinate Definition Block
+&H9     4       1       Bytes to read for coordinates from Coordinate Definition Block [??]
+&HD     2       1       Section count
+&HF     4       2       Label X,Y
+&H17    4       4       MBR
+&H27    1       1       Line type number from Resource Block
+&H28    1       1       Brush type number from Resource Block
+
+ShortText [ID 16] (length: &H27)
+&H0     1       1       Identifier (Value: &H10) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       1       Offset of text body in Coordinate Definition Block
+&H9     2       1       Number of characters in text body
+&HB     2       1       Justification spacing arrowtype:
+                                flag 2^1 - centered text 
+                                flag 2^2 - right aligned text 
+                                flag 2^3 - line spacing 1.5 
+                                flag 2^4 - line spacing 2.0 
+                                flag 2^5 - label line: simple 
+                                flag 2^6 - label line: arrow 
+&HD     2       1       Text rotation angle (0.1 degrees)
+&HF     1       1       FontStyle #1:
+                                flag 2^0 - bold text 
+                                flag 2^1 - italic text 
+                                flag 2^2 - underlined text 
+                                flag 2^3 - overlined text 
+                                flag 2^4 - unknown 
+                                flag 2^5 - shadowed text 
+&H10    1       1       FontStyle #2:
+                                flag 2^0 - box background 
+                                flag 2^1 - halo background 
+                                flag 2^2 - All Caps 
+                                flag 2^3 - Expanded
+&H11    3       1       Foreground color
+&H14    3       1       Background color
+&H17    2       2       Arrow endpoint coordinates
+&H1B    2       1       Height
+&H1D    1       1       Font name index
+&H1E    2       4       MBR
+&H26    1       1       Pen type from Resource Block
+
+LongText [ID 17] (length: &H35)
+&H0     1       1       Identifier (Value: &H11) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       1       Offset of text body in Coordinate Definition Block
+&H9     2       1       Number of characters in text body
+&HC     2       1       Justification spacing arrowtype:
+                                flag 2^1 - centered text 
+                                flag 2^2 - right aligned text 
+                                flag 2^3 - line spacing 1.5 
+                                flag 2^4 - line spacing 2.0 
+                                flag 2^5 - label line: simple 
+                                flag 2^6 - label line: arrow 
+&HD     2       1       Text rotation angle (0.1 degrees)
+&HF     1       1       FontStyle #1:
+                                flag 2^0 - bold text 
+                                flag 2^1 - italic text 
+                                flag 2^2 - underlined text 
+                                flag 2^3 - overlined text 
+                                flag 2^4 - unknown 
+                                flag 2^5 - shadowed text 
+&H10    1       1       FontStyle #2:
+                                flag 2^0 - box background 
+                                flag 2^1 - halo background 
+                                flag 2^2 - All Caps 
+                                flag 2^3 - Expanded
+&H11    3       1       Foreground color
+&H14    3       1       Background color
+&H17    4       2       Arrow endpoint coordinates
+&H1F    1       4         Height
+&H20    1       1       Font name index
+&H30    4       4       MBR
+&H31    1       1       Pen type from Resource Block
+
+ShortRectangle [ID 19] (length: &HF):
+&H0     1       1       Identifier (Value: &H10) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     2       4       MBR
+&HD     1       1       Line type number in Resource Block
+&HE     1       1       Brush type number in Resource Block
+
+LongRectangle [ID 20] (length: &H17):
+&H0     1       1       Identifier (Value: &H17) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       4       MBR
+&H15    1       1       Line type number from Resource Block
+&H16    1       1       Brush type number from Resource Block
+
+ShortRoundRectangle [ID 22] (length: &H13):
+&H0     1       1       Identifier (Value: &H16) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     2       1       XRadius
+&H7     2       1       YRadius
+&H9     2       4       MBR
+&H11    1       1       Line type number from Resource Block
+&H12    1       1       Brush type number from Resource Block
+
+LongRoundRectangle [ID 23] (length: &H1F):
+&H0     1       1       Identifier (Value: &H16) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       1       XRadius
+&H9     4       1       YRadius
+&HD     4       4       MBR
+&H1D    1       1       Line type number from Resource Block
+&H1E    1       1       Brush type number from Resource Block
+
+ShortEllipse [ID 25] (length: &HF):
+&H0     1       1       Identifier (Value: &H1A) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     2       4       MBR
+&HD     1       1       Line type number from Resource Block
+&HE     1       1       Brush type number from Resource Block
+
+LongEllipse [ID 26] (length: &H17):
+&H0     1       1       Identifier (Value: &H1A) [!]
+&H1     4       1       RowID - Validity: (+0 = Valid; +&H40000000 = Deleted)       
+&H5     4       4       MBR
+&H15    1       1       Line type number from Resource Block
+&H16    1       1       Brush type number from Resource Block
+</pre>
+
+<h4><a name="bl3"></a>Coordinate Definition Block (BlockType 3)</h4>
+
+<pre>
+Coordinate Definition Block header (length: &H8)
+---------------------------------------------------------------
+&H0 2   1   Coordinate Definition Block identifier (Value: &H3) [!]
+&H2 2   1   Bytes To Follow
+&H4 4   1   Offset to Coordinates
+
+Short Poly Section header (length: &H10)
+---------------------------------------------------------------
+&H0 2   1   Number of coordinates
+&H2 2   1   Number of holes
+&H4 2   4   Section MBR coordinates
+&H4 4   1   Offset to coordinates
+
+Long Poly Section header (length: &H18)
+---------------------------------------------------------------
+&H0 2   1   Number of coordinates
+&H2 2   1   Number of holes
+&H4 4   4   Section MBR coordinates
+&H4 4   1   Offset to coordinates
+
+</pre>
+
+
+<h4><a name="bl4"></a>DELETED BLOCK (BlockType 4) [?]</h4>
+
+<pre>
+Deleted Block header (length: &H8)
+---------------------------------------------------------------
+&H0 1   1   Deleted Block identifier (Value: &H4) [!]
+&H1 1   1   Unknown
+&H2 2   1   Bytes To Follow
+&H4 4   1   Offset of next Deleted block
+</pre>
+
+<h4><a name="bl5"></a>RESOURCE BLOCK (BlockType 5)</h4>
+<pre>
+Resource Block header (length: &H8)
+---------------------------------------------------------------
+&H0 1   1   Resource Block identifier (Value: &H5) [!]
+&H1 1   1   Unknown
+&H2 2   1   Bytes To Follow
+&H4 4   1   Offset of next Deleted block
+
+Resource types identified by the first byte:
+---------------------------------------------------------------
+
+ID 1 Pen resource (length:&HB)
+&H0 1   1   Resource identifier (Value: &H1) [!]
+&H1 4   1   Number of elements using this resource
+&H5 1   1   Line weight (pixels)
+&H6 1   1   Line style
+&H7 1   1   Line weight (points)
+&H8 3   1   Line color
+
+ID 2 Brush resource (length:&HD)
+&H0 1   1   Resource identifier (Value: &H2) [!]
+&H1 4   1   Number of elements using this resource
+&H5 1   1   Brush style
+&H6 1   1   Unknown
+&H7 3   1   Foreground color
+&HA 3   1   Background color
+
+ID 3 Font resource (length:&H25)
+&H0 1   1   Resource identifier (Value: &H3) [!]
+&H1 4   1   Number of elements using this resource
+&H5 32  1   Name of a font
+
+ID 4 Symbol resource (length:&HD)
+&H0 1   1   Resource identifier (Value: &H4) [!]
+&H1 4   1   Number of elements using this resource
+&H5 1   1   Unknown
+&H6 1   1   Unknown
+&H7 1   1   Unknown
+&H8 1   1   Unknown
+&H9 4   1   Unknown
+</pre>
+
+<hr>
+
+<h3>RELATED LINKS</h3>
+
+<p class="links">MapInfo TAB file "open source" documentation by Robert Edwards<br>
+[<a href="http://members.aol.com/MapToolsCompany/tabdef.txt">http://members.aol.com/MapToolsCompany/tabdef.txt</a>]
+</p>
+<p class="links">Open Source C++ library to read and write MapInfo by Daniel Morissette<br>
+[<a href="http://pages.infinit.net/danmo/e00/index-mitab.html">http://pages.infinit.net/danmo/e00/index-mitab.html</a>]
+</p>
+<p class="links">Recover.mbx by author<br>
+[<a href="http://www.directionsmag.com/tools/default.asp?a=file&id=163">http://www.directionsmag.com/tools/default.asp?a=file&id=163</a>]
+</p>
+<p class="links">(end)</p>
+</body>
+</html>
